@@ -102,7 +102,6 @@ async def get_real_phone(message: Message, state: FSMContext):
     users[user_id]["completed"] = True
     users[user_id]["username"] = message.from_user.username or "ندارد"
     users[user_id]["uploads"] = []
-    users[user_id]["is_vip"] = False
     users[user_id].pop("step", None)
     save_users(users)
 
@@ -141,12 +140,6 @@ async def handle_media(message: Message):
         await bot.send_video(chat_id=ADMIN_ID, video=file_info["file_id"], caption=caption)
 
     users[user_id].setdefault("uploads", []).append(file_info)
-
-    # بررسی ارتقا به VIP
-    if len(users[user_id]["uploads"]) >= 5 and not users[user_id].get("is_vip"):
-        users[user_id]["is_vip"] = True
-        await message.answer("🎉 تبریک! شما به عضویت VIP ارتقا یافتید!")
-
     save_users(users)
     await message.answer("✅ فایل شما دریافت شد.")
 
@@ -170,7 +163,6 @@ async def show_profile(message: Message):
     if not data:
         await message.answer("شما هنوز ثبت‌نام نکرده‌اید.")
         return
-    vip_status = "🎖 عضو VIP" if data.get("is_vip") else "کاربر عادی"
     await message.answer(f"""
 👤 نام: {data['name']}
 📸 اینستاگرام: {data['instagram']}
@@ -178,7 +170,6 @@ async def show_profile(message: Message):
 🔗 یوزرنیم: @{data['username']}
 🆔 آیدی عددی: <a href="tg://user?id={user_id}">{user_id}</a>
 📂 تعداد فایل‌های ارسالی: {len(data.get('uploads', []))}
-🏅 وضعیت: {vip_status}
 """)
 
 @dp.message(F.text == "/users")
@@ -187,13 +178,12 @@ async def list_users(message: Message):
         return
     for uid, data in users.items():
         if data.get("completed"):
-            vip_mark = "⭐️ " if data.get("is_vip") else ""
             info = f"""
-{vip_mark}<b>👤 نام:</b> {data['name']}
-📸 <b>اینستاگرام:</b> {data['instagram']}
-📞 <b>شماره:</b> {data['phone']}
-🆔 <b>آیدی عددی:</b> <a href="tg://user?id={uid}">{uid}</a>
-🔗 <b>یوزرنیم:</b> @{data.get('username', 'ندارد')}
+👤 نام: {data['name']}
+📸 اینستاگرام: {data['instagram']}
+📞 شماره: {data['phone']}
+🆔 آیدی عددی: <a href="tg://user?id={uid}">{uid}</a>
+🔗 یوزرنیم: @{data.get('username', 'ندارد')}
 """
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
                 [
