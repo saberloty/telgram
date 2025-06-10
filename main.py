@@ -49,7 +49,12 @@ def user_keyboard():
 
 @dp.message(F.text == "/start")
 async def cmd_start(message: Message, state: FSMContext):
+    user_id = str(message.from_user.id)
     name = message.from_user.first_name
+    if user_id in users and users[user_id].get("completed"):
+        await message.answer("شما قبلاً ثبت‌نام کرده‌اید. اکنون می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=user_keyboard())
+        return
+
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")]
     ])
@@ -112,7 +117,7 @@ async def get_real_phone(message: Message, state: FSMContext):
 👤 نام: {users[user_id]['name']}
 📸 اینستاگرام: {users[user_id]['instagram']}
 📞 شماره: {users[user_id]['phone']}
-🆔 آیدی عددی: <a href="tg://user?id={user_id}">{user_id}</a>
+🆔 آیدی عددی: <a href=\"tg://user?id={user_id}\">{user_id}</a>
 🔗 یوزرنیم: @{users[user_id]["username"]}
 """)
     await state.clear()
@@ -175,7 +180,7 @@ async def show_profile(message: Message):
 📸 اینستاگرام: {data['instagram']}
 📞 شماره: {data['phone']}
 🔗 یوزرنیم: @{data['username']}
-🆔 آیدی عددی: <a href="tg://user?id={user_id}">{user_id}</a>
+🆔 آیدی عددی: <a href=\"tg://user?id={user_id}\">{user_id}</a>
 📂 تعداد فایل‌های ارسالی: {len(data.get('uploads', []))}
 🏅 وضعیت: {vip_status}
 """)
@@ -191,7 +196,7 @@ async def list_users(message: Message):
 {vip_mark}<b>👤 نام:</b> {data['name']}
 📸 <b>اینستاگرام:</b> {data['instagram']}
 📞 <b>شماره:</b> {data['phone']}
-🆔 <b>آیدی عددی:</b> <a href="tg://user?id={uid}">{uid}</a>
+🆔 <b>آیدی عددی:</b> <a href=\"tg://user?id={uid}\">{uid}</a>
 🔗 <b>یوزرنیم:</b> @{data.get('username', 'ندارد')}
 """
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -230,8 +235,7 @@ async def handle_view_uploads(callback: types.CallbackQuery):
     await callback.answer()
 
 async def main():
-    # ارسال پیام به ادمین هنگام دیپلوی شدن
-    await bot.send_message(ADMIN_ID, "✅ ربات با موفقیت دیپلوی و آماده به کار شد.")
+    await bot.send_message(ADMIN_ID, "✅ ربات با موفقیت دیپلوی شد و آماده است.")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
