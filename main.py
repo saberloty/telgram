@@ -1,228 +1,162 @@
-import logging
 import asyncio
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.enums import ParseMode
+from aiogram.utils.markdown import hlink
+from flask import Flask
 import json
 import os
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.enums import ParseMode
-from aiogram.types import (
-    Message, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
-)
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.fsm.state import State, StatesGroup
-from keep_alive import keep_alive
 
-API_TOKEN = '8177436123:AAG2RuDLbRI6HdgsCTa7_75TJwuQ151ohLA'
+# تنظیمات
+BOT_TOKEN = "8177436123:AAG2RuDLbRI6HdgsCTa7_75TJwuQ151ohLA"
 ADMIN_ID = 131555118
 CHANNEL_ID = -1002798154695
-USERS_FILE = "users.json"
+DATA_FILE = "users.json"
 
-logging.basicConfig(level=logging.INFO)
-bot = Bot(token=API_TOKEN, parse_mode=ParseMode.HTML)
-dp = Dispatcher(storage=MemoryStorage())
+# راه‌اندازی بات
+bot = Bot(token=BOT_TOKEN, parse_mode=ParseMode.HTML)
+dp = Dispatcher()
 
-class RegisterState(StatesGroup):
-    waiting_for_name = State()
-    waiting_for_instagram = State()
-    waiting_for_phone = State()
+# بارگذاری اطلاعات کاربران
+if os.path.exists(DATA_FILE):
+    with open(DATA_FILE, "r") as f:
+        users = json.load(f)
+else:
+    users = {}
 
-def load_users():
-    if os.path.exists(USERS_FILE):
-        with open(USERS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
+# دکمه‌های اصلی
+def main_menu():
+    buttons = [
+        [types.KeyboardButton(text="📁 ارسالی‌های شما")],
+        [types.KeyboardButton(text="👤 پروفایل من")]
+    ]
+    return types.ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
-def save_users(data):
-    with open(USERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+# ذخیره اطلاعات کاربران
+def save_users():
+    with open(DATA_FILE, "w") as f:
+        json.dump(users, f, ensure_ascii=False, indent=2)
 
-users = load_users()
-
-def user_keyboard():
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="📁 ارسالی‌های شما")],
-            [KeyboardButton(text="👤 پروفایل من")]
-        ],
-        resize_keyboard=True
-    )
-
+# شروع ربات
 @dp.message(F.text == "/start")
-async def cmd_start(message: Message, state: FSMContext):
-    name = message.from_user.first_name
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")]
-    ])
-    await message.answer(
-        f"سلام {name} عزیز 👋\nبرای استفاده از ربات ابتدا باید ثبت‌نام کنید تا بتوانید عکس و کلیپ خود را برای ما ارسال کنید.",
-        reply_markup=kb
-    )
+async def cmd_start(message: types.Message):
+    user_id = str(message.from_user.id)
+    if user_id in users:
+        await message.answer(f"سلام {message.from_user.first_name} عزیز 🌟\nشما قبلاً ثبت‌نام کرده‌اید.", reply_markup=main_menu())
+    else:
+        btn = types.InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")
+        kb = types.InlineKeyboardMarkup(inline_keyboard=[[btn]])
+        await message.answer(f"سلام {message.from_user.first_name} 👋\nبرای استفاده از ربات باید ثبت‌نام کنید.", reply_markup=kb)
 
 @dp.callback_query(F.data == "start_register")
-async def begin_register(callback: types.CallbackQuery, state: FSMContext):
-    user_id = str(callback.from_user.id)
-    if user_id in users and users[user_id].get("completed"):
-        await callback.message.answer("شما قبلاً ثبت‌نام کرده‌اید.", reply_markup=user_keyboard())
-        return
-    users[user_id] = {"step": "ask_name"}
-    save_users(users)
+async def register_start(callback: types.CallbackQuery):
     await callback.message.answer("لطفاً نام خود را وارد کنید:")
-    await state.set_state(RegisterState.waiting_for_name)
+    await callback.answer()
+    dp.fsm_data[callback.from_user.id] = {"step": "name"}
 
-@dp.message(RegisterState.waiting_for_name)
-async def get_name(message: Message, state: FSMContext):
+@dp.message()
+async def handle_messages(message: types.Message):
     user_id = str(message.from_user.id)
-    users[user_id]["name"] = message.text
-    users[user_id]["step"] = "ask_instagram"
-    save_users(users)
-    await message.answer("لطفاً آیدی اینستاگرام خود را وارد کنید:")
-    await state.set_state(RegisterState.waiting_for_instagram)
 
-@dp.message(RegisterState.waiting_for_instagram)
-async def get_instagram(message: Message, state: FSMContext):
-    user_id = str(message.from_user.id)
-    users[user_id]["instagram"] = message.text
-    users[user_id]["step"] = "ask_phone"
-    save_users(users)
-    kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="📱 ارسال شماره من", request_contact=True)]],
-        resize_keyboard=True,
-        one_time_keyboard=True
-    )
-    await message.answer("فقط از طریق دکمه زیر شماره خود را ارسال کنید:", reply_markup=kb)
-    await state.set_state(RegisterState.waiting_for_phone)
+    if user_id in dp.fsm_data:
+        step_data = dp.fsm_data[user_id]
 
-@dp.message(RegisterState.waiting_for_phone, F.contact)
-async def get_real_phone(message: Message, state: FSMContext):
-    if message.contact.user_id != message.from_user.id:
-        await message.answer("⚠️ فقط شماره خودتان را ارسال کنید.")
-        return
-    user_id = str(message.from_user.id)
-    users[user_id]["phone"] = message.contact.phone_number
-    users[user_id]["completed"] = True
-    users[user_id]["username"] = message.from_user.username or "ندارد"
-    users[user_id]["uploads"] = []
-    users[user_id].pop("step", None)
-    save_users(users)
+        if step_data["step"] == "name":
+            step_data["name"] = message.text
+            step_data["step"] = "instagram"
+            await message.answer("آیدی اینستاگرام خود را وارد کنید (بدون @):")
 
-    await message.answer("✅ ثبت‌نام شما با موفقیت انجام شد اکنون میتوانید عکس یا کلیپ بفرستید.", reply_markup=user_keyboard())
-    await bot.send_message(ADMIN_ID, f"""
-📝 <b>ثبت‌نام جدید:</b>
-👤 نام: {users[user_id]['name']}
-📸 اینستاگرام: {users[user_id]['instagram']}
-📞 شماره: {users[user_id]['phone']}
-🆔 آیدی عددی: <a href="tg://user?id={user_id}">{user_id}</a>
-🔗 یوزرنیم: @{users[user_id]["username"]}
-""")
-    await state.clear()
+        elif step_data["step"] == "instagram":
+            step_data["instagram"] = message.text
+            step_data["step"] = "phone"
+            kb = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+            kb.add(KeyboardButton(text="ارسال شماره ☎️", request_contact=True))
+            await message.answer("لطفاً شماره تماس خود را با دکمه زیر ارسال کنید:", reply_markup=kb)
 
-@dp.message(RegisterState.waiting_for_phone)
-async def reject_typed_phone(message: Message):
-    await message.answer("❌ لطفاً فقط با دکمه '📱 ارسال شماره من' شماره‌تان را بفرستید.")
-
-@dp.message(F.photo | F.video)
-async def handle_media(message: Message):
-    user_id = str(message.from_user.id)
-    if user_id not in users or not users[user_id].get("completed"):
-        await message.answer("ابتدا ثبت‌نام را کامل کنید.")
-        return
-
-    file_info = {"type": "photo" if message.photo else "video", "file_id": None}
-    caption = f"📤 ارسال جدید\n👤 @{message.from_user.username or 'ندارد'}\n🆔 <a href='tg://user?id={user_id}'>{user_id}</a>"
-
-    if message.photo:
-        file_info["file_id"] = message.photo[-1].file_id
-        await bot.send_photo(chat_id=CHANNEL_ID, photo=file_info["file_id"], caption=caption)
-        await bot.send_photo(chat_id=ADMIN_ID, photo=file_info["file_id"], caption=caption)
+    elif user_id in users:
+        if message.text == "📁 ارسالی‌های شما":
+            uploads = users[user_id].get("uploads", [])
+            if uploads:
+                for item in uploads:
+                    await message.answer_media_group(media=[item])
+            else:
+                await message.answer("شما تاکنون فایلی ارسال نکرده‌اید.")
+        elif message.text == "👤 پروفایل من":
+            info = users[user_id]
+            text = (
+                f"<b>👤 نام:</b> {info['name']}\n"
+                f"<b>📸 اینستاگرام:</b> @{info['instagram']}\n"
+                f"<b>☎️ شماره:</b> {info['phone']}\n"
+                f"<b>📂 تعداد فایل‌های ارسالی:</b> {len(info.get('uploads', []))}"
+            )
+            await message.answer(text)
     else:
-        file_info["file_id"] = message.video.file_id
-        await bot.send_video(chat_id=CHANNEL_ID, video=file_info["file_id"], caption=caption)
-        await bot.send_video(chat_id=ADMIN_ID, video=file_info["file_id"], caption=caption)
+        await message.answer("برای استفاده از ربات، ابتدا ثبت‌نام کنید.")
 
-    users[user_id].setdefault("uploads", []).append(file_info)
-    save_users(users)
-    await message.answer("✅ فایل شما دریافت شد.")
-
-@dp.message(F.text == "📁 ارسالی‌های شما")
-async def your_uploads(message: Message):
+@dp.message(F.contact)
+async def get_contact(message: types.Message):
     user_id = str(message.from_user.id)
-    uploads = users.get(user_id, {}).get("uploads", [])
-    if not uploads:
-        await message.answer("شما هنوز فایلی ارسال نکرده‌اید.")
-        return
-    for item in uploads:
-        if item["type"] == "photo":
-            await message.answer_photo(photo=item["file_id"])
-        else:
-            await message.answer_video(video=item["file_id"])
+    if user_id in dp.fsm_data and dp.fsm_data[user_id]["step"] == "phone":
+        contact = message.contact
+        if contact.user_id != message.from_user.id:
+            await message.answer("لطفاً شماره خودتان را با دکمه ارسال کنید، نه تایپ شده!")
+            return
 
-@dp.message(F.text == "👤 پروفایل من")
-async def show_profile(message: Message):
+        # ثبت کاربر
+        dp.fsm_data[user_id]["phone"] = contact.phone_number
+        users[user_id] = {
+            "name": dp.fsm_data[user_id]["name"],
+            "instagram": dp.fsm_data[user_id]["instagram"],
+            "phone": dp.fsm_data[user_id]["phone"],
+            "uploads": []
+        }
+        save_users()
+        del dp.fsm_data[user_id]
+        await message.answer("✅ ثبت‌نام شما با موفقیت انجام شد.", reply_markup=main_menu())
+
+        # اطلاع به ادمین
+        link = f"tg://user?id={user_id}"
+        await bot.send_message(
+            ADMIN_ID,
+            f"🎉 <b>ثبت‌نام جدید:</b>\n"
+            f"👤 نام: {users[user_id]['name']}\n"
+            f"📸 اینستاگرام: @{users[user_id]['instagram']}\n"
+            f"☎️ شماره: {users[user_id]['phone']}\n"
+            f"🆔 <a href='{link}'>{user_id}</a>"
+        )
+
+@dp.message(F.content_type.in_({"photo", "video"}))
+async def save_uploads(message: types.Message):
     user_id = str(message.from_user.id)
-    data = users.get(user_id)
-    if not data:
+    if user_id not in users:
         await message.answer("شما هنوز ثبت‌نام نکرده‌اید.")
         return
-    await message.answer(f"""
-👤 نام: {data['name']}
-📸 اینستاگرام: {data['instagram']}
-📞 شماره: {data['phone']}
-🔗 یوزرنیم: @{data['username']}
-🆔 آیدی عددی: <a href="tg://user?id={user_id}">{user_id}</a>
-📂 تعداد فایل‌های ارسالی: {len(data.get('uploads', []))}
-""")
 
-@dp.message(F.text == "/users")
-async def list_users(message: Message):
-    if message.from_user.id != ADMIN_ID:
-        return
-    for uid, data in users.items():
-        if data.get("completed"):
-            info = f"""
-👤 نام: {data['name']}
-📸 اینستاگرام: {data['instagram']}
-📞 شماره: {data['phone']}
-🆔 آیدی عددی: <a href="tg://user?id={uid}">{uid}</a>
-🔗 یوزرنیم: @{data.get('username', 'ندارد')}
-"""
-            keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                [
-                    InlineKeyboardButton(text="🗑 حذف", callback_data=f"delete_{uid}"),
-                    InlineKeyboardButton(text="📁 ارسالی‌ها", callback_data=f"view_{uid}")
-                ]
-            ])
-            await message.answer(info, reply_markup=keyboard)
+    file = message.photo[-1].file_id if message.photo else message.video.file_id
+    media_type = "photo" if message.photo else "video"
+    caption = f"📤 فایل از <a href='tg://user?id={user_id}'>@{message.from_user.username or 'بدون_نام'}</a> | ID: {user_id}"
 
-@dp.callback_query(F.data.startswith("delete_"))
-async def handle_delete_user(callback: types.CallbackQuery):
-    if callback.from_user.id != ADMIN_ID:
-        return
-    user_id = callback.data.replace("delete_", "")
-    if user_id in users:
-        users.pop(user_id)
-        save_users(users)
-        await callback.message.edit_text("❌ کاربر حذف شد.")
-        await callback.answer("حذف شد.")
+    if media_type == "photo":
+        await bot.send_photo(CHANNEL_ID, file, caption=caption)
+    else:
+        await bot.send_video(CHANNEL_ID, file, caption=caption)
 
-@dp.callback_query(F.data.startswith("view_"))
-async def handle_view_uploads(callback: types.CallbackQuery):
-    if callback.from_user.id != ADMIN_ID:
-        return
-    user_id = callback.data.replace("view_", "")
-    uploads = users.get(user_id, {}).get("uploads", [])
-    if not uploads:
-        await callback.message.answer("کاربر فایلی ارسال نکرده است.")
-        return
-    for item in uploads:
-        if item["type"] == "photo":
-            await bot.send_photo(chat_id=ADMIN_ID, photo=item["file_id"])
-        else:
-            await bot.send_video(chat_id=ADMIN_ID, video=item["file_id"])
-    await callback.answer()
+    users[user_id].setdefault("uploads", []).append(types.InputMediaPhoto(media=file) if media_type == "photo" else types.InputMediaVideo(media=file))
+    save_users()
+    await message.answer("✅ فایل شما دریافت شد.")
 
+# اجرای Flask برای Railway
+flask_app = Flask(__name__)
+
+@flask_app.route('/')
+def home():
+    return "Bot is alive!", 200
+
+# اجرای همزمان Flask و Aiogram
 async def main():
+    import threading
+    threading.Thread(target=lambda: flask_app.run(host="0.0.0.0", port=8080)).start()
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    keep_alive()
     asyncio.run(main())
