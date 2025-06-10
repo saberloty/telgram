@@ -142,7 +142,6 @@ async def handle_media(message: Message):
 
     users[user_id].setdefault("uploads", []).append(file_info)
 
-    # بررسی ارتقا به VIP
     if len(users[user_id]["uploads"]) >= 5 and not users[user_id].get("is_vip"):
         users[user_id]["is_vip"] = True
         await message.answer("🎉 تبریک! شما به عضویت VIP ارتقا یافتید!")
@@ -231,6 +230,8 @@ async def handle_view_uploads(callback: types.CallbackQuery):
     await callback.answer()
 
 async def main():
+    # ارسال پیام به ادمین هنگام دیپلوی شدن
+    await bot.send_message(ADMIN_ID, "✅ ربات با موفقیت دیپلوی و آماده به کار شد.")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
