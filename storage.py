@@ -1,26 +1,44 @@
-import os
+import base64
 import json
-from github import Github
+import requests
+import os
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-REPO_NAME = "saberloty/bot-data"
+REPO_OWNER = "saberloty"
+REPO_NAME = "bot-data"
 FILE_PATH = "users.json"
-COMMIT_MESSAGE = "update users.json"
 
-def upload_to_github(content: str):
-    g = Github(GITHUB_TOKEN)
-    repo = g.get_repo(REPO_NAME)
-    try:
-        contents = repo.get_contents(FILE_PATH)
-        repo.update_file(contents.path, COMMIT_MESSAGE, content, contents.sha)
-    except:
-        repo.create_file(FILE_PATH, COMMIT_MESSAGE, content)
+API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{FILE_PATH}"
+HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
 
-def download_from_github() -> str:
-    g = Github(GITHUB_TOKEN)
-    repo = g.get_repo(REPO_NAME)
-    try:
-        contents = repo.get_contents(FILE_PATH)
-        return contents.decoded_content.decode()
-    except:
-        return json.dumps({})
+
+def load_users_data():
+    response = requests.get(API_URL, headers=HEADERS)
+    if response.status_code == 200:
+        content = response.json()["content"]
+        decoded = base64.b64decode(content).decode("utf-8")
+        return json.loads(decoded)
+    else:
+        print("خطا در بارگذاری اطلاعات از گیت‌هاب:", response.text)
+        return {}
+
+
+def save_users_data(data: dict):
+    get_resp = requests.get(API_URL, headers=HEADERS)
+    if get_resp.status_code == 200:
+        sha = get_resp.json()["sha"]
+    else:
+        print("خطا در دریافت SHA:", get_resp.text)
+        return
+
+    encoded_content = base64.b64encode(json.dumps(data, ensure_ascii=False, indent=2).encode()).decode()
+    payload = {
+        "message": "update users.json",
+        "content": encoded_content,
+        "sha": sha,
+        "branch": "main"
+    }
+
+    put_resp = requests.put(API_URL, headers=HEADERS, json=payload)
+    if put_resp.status_code not in [200, 201]:
+        print("خطا در ذخیره اطلاعات در گیت‌هاب:", put_resp.text)
