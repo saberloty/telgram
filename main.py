@@ -49,7 +49,12 @@ def user_keyboard():
 
 @dp.message(F.text == "/start")
 async def cmd_start(message: Message, state: FSMContext):
+    user_id = str(message.from_user.id)
     name = message.from_user.first_name
+    if user_id in users and users[user_id].get("completed"):
+        await message.answer("شما قبلاً ثبت‌نام کرده‌اید. اکنون می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=user_keyboard())
+        return
+
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")]
     ])
@@ -102,6 +107,7 @@ async def get_real_phone(message: Message, state: FSMContext):
     users[user_id]["completed"] = True
     users[user_id]["username"] = message.from_user.username or "ندارد"
     users[user_id]["uploads"] = []
+    users[user_id]["is_vip"] = False
     users[user_id].pop("step", None)
     save_users(users)
 
@@ -111,7 +117,7 @@ async def get_real_phone(message: Message, state: FSMContext):
 👤 نام: {users[user_id]['name']}
 📸 اینستاگرام: {users[user_id]['instagram']}
 📞 شماره: {users[user_id]['phone']}
-🆔 آیدی عددی: <a href="tg://user?id={user_id}">{user_id}</a>
+🆔 آیدی عددی: <a href=\"tg://user?id={user_id}\">{user_id}</a>
 🔗 یوزرنیم: @{users[user_id]["username"]}
 """)
     await state.clear()
@@ -140,6 +146,11 @@ async def handle_media(message: Message):
         await bot.send_video(chat_id=ADMIN_ID, video=file_info["file_id"], caption=caption)
 
     users[user_id].setdefault("uploads", []).append(file_info)
+
+    if len(users[user_id]["uploads"]) >= 5 and not users[user_id].get("is_vip"):
+        users[user_id]["is_vip"] = True
+        await message.answer("🎉 تبریک! شما به عضویت VIP ارتقا یافتید!")
+
     save_users(users)
     await message.answer("✅ فایل شما دریافت شد.")
 
@@ -163,13 +174,15 @@ async def show_profile(message: Message):
     if not data:
         await message.answer("شما هنوز ثبت‌نام نکرده‌اید.")
         return
+    vip_status = "🎖 عضو VIP" if data.get("is_vip") else "کاربر عادی"
     await message.answer(f"""
 👤 نام: {data['name']}
 📸 اینستاگرام: {data['instagram']}
 📞 شماره: {data['phone']}
 🔗 یوزرنیم: @{data['username']}
-🆔 آیدی عددی: <a href="tg://user?id={user_id}">{user_id}</a>
+🆔 آیدی عددی: <a href=\"tg://user?id={user_id}\">{user_id}</a>
 📂 تعداد فایل‌های ارسالی: {len(data.get('uploads', []))}
+🏅 وضعیت: {vip_status}
 """)
 
 @dp.message(F.text == "/users")
@@ -178,12 +191,13 @@ async def list_users(message: Message):
         return
     for uid, data in users.items():
         if data.get("completed"):
+            vip_mark = "⭐️ " if data.get("is_vip") else ""
             info = f"""
-👤 نام: {data['name']}
-📸 اینستاگرام: {data['instagram']}
-📞 شماره: {data['phone']}
-🆔 آیدی عددی: <a href="tg://user?id={uid}">{uid}</a>
-🔗 یوزرنیم: @{data.get('username', 'ندارد')}
+{vip_mark}<b>👤 نام:</b> {data['name']}
+📸 <b>اینستاگرام:</b> {data['instagram']}
+📞 <b>شماره:</b> {data['phone']}
+🆔 <b>آیدی عددی:</b> <a href=\"tg://user?id={uid}\">{uid}</a>
+🔗 <b>یوزرنیم:</b> @{data.get('username', 'ندارد')}
 """
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
                 [
@@ -221,6 +235,7 @@ async def handle_view_uploads(callback: types.CallbackQuery):
     await callback.answer()
 
 async def main():
+    await bot.send_message(ADMIN_ID, "✅ ربات با موفقیت دیپلوی شد و آماده است.")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
