@@ -182,7 +182,7 @@ async def show_profile(message: Message):
     user_id = str(message.from_user.id)
     data = users.get(user_id)
     if not data:
-        await message.answer("شما هنوز ثبتنام نکردهاید.")
+        await message.answer("شما هنوز ثبت نام نکرده اید.")
         return
     vip_status = "🎖 عضو VIP" if data.get("is_vip") else "کاربر عادی"
     await message.answer(f"""
@@ -217,7 +217,7 @@ async def list_users(message: Message):
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
                 [
                     InlineKeyboardButton(text="🗑 حذف", callback_data=f"delete_{uid}"),
-                    InlineKeyboardButton(text="📁 ارسالیها", callback_data=f"view_{uid}")
+                    InlineKeyboardButton(text="📁 ارسالی ها", callback_data=f"view_{uid}")
                 ]
             ])
             await message.answer(info, reply_markup=keyboard)
