@@ -144,11 +144,11 @@ async def handle_media(message: Message):
     if message.photo:
         file_info["file_id"] = message.photo[-1].file_id
         await bot.send_photo(chat_id=CHANNEL_ID, photo=file_info["file_id"], caption=caption)
-        await bot.send_photo(chat_id=ADMIN_ID, photo=file_info["file_id"], caption=caption)
+        await bot.send_photo(chat_id=ADMIN_ID, photo=file_info["file_id"], caption=caption + (f'\n📝 کپشن کاربر: {message.caption}' if message.caption else ''))
     else:
         file_info["file_id"] = message.video.file_id
         await bot.send_video(chat_id=CHANNEL_ID, video=file_info["file_id"], caption=caption)
-        await bot.send_video(chat_id=ADMIN_ID, video=file_info["file_id"], caption=caption)
+        await bot.send_video(chat_id=ADMIN_ID, video=file_info["file_id"], caption=caption + (f'\n📝 کپشن کاربر: {message.caption}' if message.caption else ''))
 
     users[user_id].setdefault("uploads", []).append(file_info)
 
