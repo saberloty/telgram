@@ -65,10 +65,10 @@ async def cmd_start(message: Message, state: FSMContext):
         [InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")]
     ])
     await message.answer(
-        f"سلام {name} عزیز 👋
-برای استفاده از ربات ابتدا باید ثبت‌نام کنید تا بتوانید عکس و کلیپ خود را برای ما ارسال کنید.",
-        reply_markup=kb
-    )
+    f"""سلام {name} عزیز 👋
+برای استفاده از ربات ابتدا باید ثبت‌نام کنید تا بتوانید عکس و کلیپ خود را برای ما ارسال کنید.""",
+    reply_markup=kb
+)
 
 @dp.callback_query(F.data == "start_register")
 async def begin_register(callback: types.CallbackQuery, state: FSMContext):
