@@ -135,20 +135,25 @@ async def reject_typed_phone(message: Message):
 async def handle_media(message: Message):
     user_id = str(message.from_user.id)
     if user_id not in users or not users[user_id].get("completed"):
-        await message.answer("ابتدا ثبتنام را کامل کنید.")
+        await message.answer("ابتدا ثبت‌نام را کامل کنید.")
         return
 
-    file_info = {"type": "photo" if message.photo else "video", "file_id": None}
-    caption = f"📤 ارسال جدید\n👤 @{message.from_user.username or 'ندارد'}\n🆔 <a href='tg://user?id={user_id}'>{user_id}</a>"
+    file_info = {
+        "type": "photo" if message.photo else "video",
+        "file_id": message.photo[-1].file_id if message.photo else message.video.file_id
+    }
 
-    if message.photo:
-        file_info["file_id"] = message.photo[-1].file_id
-        await bot.send_photo(chat_id=CHANNEL_ID, photo=file_info["file_id"], caption=caption)
-        await bot.send_photo(chat_id=ADMIN_ID, photo=file_info["file_id"], caption=caption)
+    user_caption = message.caption or ""
+    caption = f"📤 ارسال جدید\n👤 @{message.from_user.username or 'ندارد'}\n🆔 <a href='tg://user?id={user_id}'>{user_id}</a>"
+    if user_caption:
+        caption += f"\n\n📝 کپشن کاربر:\n{user_caption}"
+
+    if file_info["type"] == "photo":
+        await bot.send_photo(chat_id=ADMIN_ID, photo=file_info["file_id"], caption=caption, parse_mode=ParseMode.HTML)
+        await bot.send_photo(chat_id=CHANNEL_ID, photo=file_info["file_id"], caption=caption, parse_mode=ParseMode.HTML)
     else:
-        file_info["file_id"] = message.video.file_id
-        await bot.send_video(chat_id=CHANNEL_ID, video=file_info["file_id"], caption=caption)
-        await bot.send_video(chat_id=ADMIN_ID, video=file_info["file_id"], caption=caption)
+        await bot.send_video(chat_id=ADMIN_ID, video=file_info["file_id"], caption=caption, parse_mode=ParseMode.HTML)
+        await bot.send_video(chat_id=CHANNEL_ID, video=file_info["file_id"], caption=caption, parse_mode=ParseMode.HTML)
 
     users[user_id].setdefault("uploads", []).append(file_info)
 
