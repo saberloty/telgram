@@ -138,10 +138,9 @@ async def handle_media(message: Message):
         return
 
     caption_text = message.caption or ""
-    caption = f"📤 ارسال جدید
-👤 @{message.from_user.username or 'ندارد'}
-🆔 <a href='tg://user?id={user_id}'>{user_id}</a>
-
+    caption = f"📤 ارسال جدید\n👤 @{message.from_user.username or 'ندارد'}\n🆔 <a href='tg://user?id={user_id}'>{user_id}</a>"
+if message.caption:
+    caption += f"\n📝 کپشن کاربر: {message.caption}"
 {caption_text}"
 
     file_info = {
