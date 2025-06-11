@@ -50,24 +50,19 @@ def user_keyboard(user_id=None):
 @dp.message(F.text == "/start")
 async def cmd_start(message: Message, state: FSMContext):
     user_id = str(message.from_user.id)
-
-    if message.from_user.id == ADMIN_ID:
-        await message.answer("سلام مدیر عزیز! به پنل ادمین خوش آمدید.", reply_markup=user_keyboard(ADMIN_ID))
-        return
-
     if user_id in users and users[user_id].get("completed"):
         await message.answer("شما قبلاً ثبت‌نام کرده‌اید و می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=user_keyboard(user_id))
-        return
-
-    name = message.from_user.first_name
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")]
-    ])
-    await message.answer(
-        f"سلام {name} عزیز 👋
-برای استفاده از ربات ابتدا باید ثبت‌نام کنید تا بتوانید عکس و کلیپ خود را برای ما ارسال کنید.",
-        reply_markup=kb
-    )
+    elif user_id == str(ADMIN_ID):
+        await message.answer("به پنل مدیریت خوش آمدید.", reply_markup=user_keyboard(user_id))
+    else:
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")]
+        ])
+        await message.answer(
+            f"""سلام {message.from_user.first_name} عزیز 👋
+برای استفاده از ربات ابتدا باید ثبت‌نام کنید تا بتوانید عکس و کلیپ خود را برای ما ارسال کنید.""",
+            reply_markup=kb
+        )
 
 @dp.callback_query(F.data == "start_register")
 async def begin_register(callback: types.CallbackQuery, state: FSMContext):
@@ -109,11 +104,13 @@ async def get_real_phone(message: Message, state: FSMContext):
         await message.answer("⚠️ فقط شماره خودتان را ارسال کنید.")
         return
     user_id = str(message.from_user.id)
-    users[user_id]["phone"] = message.contact.phone_number
-    users[user_id]["completed"] = True
-    users[user_id]["username"] = message.from_user.username or "ندارد"
-    users[user_id]["uploads"] = []
-    users[user_id]["is_vip"] = False
+    users[user_id].update({
+        "phone": message.contact.phone_number,
+        "completed": True,
+        "username": message.from_user.username or "ندارد",
+        "uploads": [],
+        "is_vip": False
+    })
     users[user_id].pop("step", None)
     save_users(users)
 
@@ -139,31 +136,26 @@ async def handle_media(message: Message):
         await message.answer("ابتدا ثبت‌نام را کامل کنید.")
         return
 
-    file_info = {"type": "photo" if message.photo else "video", "file_id": None}
-    user_caption = message.caption or ""
-    caption = f"📤 ارسال جدید
+    caption = message.caption or ""
+    info_text = f"
 👤 @{message.from_user.username or 'ندارد'}
 🆔 <a href='tg://user?id={user_id}'>{user_id}</a>"
-    if user_caption:
-        caption += f"
-📝 کپشن:
-{user_caption}"
+    full_caption = caption + info_text
 
+    file_info = {"type": "photo" if message.photo else "video", "file_id": None}
     if message.photo:
         file_info["file_id"] = message.photo[-1].file_id
-        await bot.send_photo(chat_id=CHANNEL_ID, photo=file_info["file_id"], caption=caption)
-        await bot.send_photo(chat_id=ADMIN_ID, photo=file_info["file_id"], caption=caption)
+        await bot.send_photo(chat_id=CHANNEL_ID, photo=file_info["file_id"], caption=full_caption)
+        await bot.send_photo(chat_id=ADMIN_ID, photo=file_info["file_id"], caption=full_caption)
     else:
         file_info["file_id"] = message.video.file_id
-        await bot.send_video(chat_id=CHANNEL_ID, video=file_info["file_id"], caption=caption)
-        await bot.send_video(chat_id=ADMIN_ID, video=file_info["file_id"], caption=caption)
+        await bot.send_video(chat_id=CHANNEL_ID, video=file_info["file_id"], caption=full_caption)
+        await bot.send_video(chat_id=ADMIN_ID, video=file_info["file_id"], caption=full_caption)
 
     users[user_id].setdefault("uploads", []).append(file_info)
-
     if len(users[user_id]["uploads"]) >= 5 and not users[user_id].get("is_vip"):
         users[user_id]["is_vip"] = True
         await message.answer("🎉 تبریک! شما به عضویت VIP ارتقا یافتید!")
-
     save_users(users)
     await message.answer("✅ فایل شما دریافت شد.")
 
@@ -199,10 +191,6 @@ async def show_profile(message: Message):
 """)
 
 @dp.message(F.text == "👥 کاربران")
-async def users_button_for_admin(message: Message):
-    if message.from_user.id == ADMIN_ID:
-        await list_users(message)
-
 @dp.message(F.text == "/users")
 async def list_users(message: Message):
     if message.from_user.id != ADMIN_ID:
@@ -253,7 +241,6 @@ async def handle_view_uploads(callback: types.CallbackQuery):
     await callback.answer()
 
 async def main():
-    await bot.send_message(ADMIN_ID, "✅ ربات با موفقیت دیپلوی و راه‌اندازی شد.")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
