@@ -135,7 +135,7 @@ async def reject_typed_phone(message: Message):
 async def handle_media(message: Message):
     user_id = str(message.from_user.id)
     if user_id not in users or not users[user_id].get("completed"):
-        await message.answer("ابتدا ثبت‌نام را کامل کنید.")
+        await message.answer("ابتدا ثبت نام را کامل کنید.")
         return
 
     file_info = {
@@ -144,16 +144,21 @@ async def handle_media(message: Message):
     }
 
     user_caption = message.caption or ""
-    caption = f"📤 ارسال جدید\n👤 @{message.from_user.username or 'ندارد'}\n🆔 <a href='tg://user?id={user_id}'>{user_id}</a>"
-    if user_caption:
-        caption += f"\n\n📝 کپشن کاربر:\n{user_caption}"
+    admin_caption = f"📤 ارسال جدید\n👤 @{message.from_user.username or 'ندارد'}\n🆔 <a href='tg://user?id={user_id}'>{user_id}</a>"
+    channel_caption = f"{user_caption}\n\n➖➖➖➖➖➖➖➖
+✍از طریق ثبت نام در ربات زیر شما  هم می توانید برای همین کانال مطلب بفرستید.👇
+@GolddancerBot
+
+🌐 | دسترسی به ۲۵ کانال رقص :👇
+https://t.me/addlist/0gZ1uuwjNKM1OWRk
+➖➖➖➖➖➖➖➖" if user_caption else caption_footer.strip()
 
     if file_info["type"] == "photo":
-        await bot.send_photo(chat_id=ADMIN_ID, photo=file_info["file_id"], caption=caption, parse_mode=ParseMode.HTML)
-        await bot.send_photo(chat_id=CHANNEL_ID, photo=file_info["file_id"], caption=caption, parse_mode=ParseMode.HTML)
+        await bot.send_photo(chat_id=ADMIN_ID, photo=file_info["file_id"], caption=admin_caption, parse_mode=ParseMode.HTML)
+        await bot.send_photo(chat_id=CHANNEL_ID, photo=file_info["file_id"], caption=channel_caption, parse_mode=ParseMode.HTML)
     else:
-        await bot.send_video(chat_id=ADMIN_ID, video=file_info["file_id"], caption=caption, parse_mode=ParseMode.HTML)
-        await bot.send_video(chat_id=CHANNEL_ID, video=file_info["file_id"], caption=caption, parse_mode=ParseMode.HTML)
+        await bot.send_video(chat_id=ADMIN_ID, video=file_info["file_id"], caption=admin_caption, parse_mode=ParseMode.HTML)
+        await bot.send_video(chat_id=CHANNEL_ID, video=file_info["file_id"], caption=channel_caption, parse_mode=ParseMode.HTML)
 
     users[user_id].setdefault("uploads", []).append(file_info)
 
@@ -163,7 +168,6 @@ async def handle_media(message: Message):
 
     save_users(users)
     await message.answer("✅ فایل شما دریافت شد.")
-
 @dp.message(F.text == "📁 ارسالی های شما")
 async def your_uploads(message: Message):
     user_id = str(message.from_user.id)
