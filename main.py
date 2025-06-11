@@ -145,13 +145,15 @@ async def handle_media(message: Message):
 
     user_caption = message.caption or ""
     admin_caption = f"📤 ارسال جدید\n👤 @{message.from_user.username or 'ندارد'}\n🆔 <a href='tg://user?id={user_id}'>{user_id}</a>"
-    channel_caption = f"{user_caption}\n\n➖➖➖➖➖➖➖➖
-✍از طریق ثبت نام در ربات زیر شما  هم می توانید برای همین کانال مطلب بفرستید.👇
+    channel_caption = f"""{user_caption}
+➖➖➖➖➖➖➖➖
+✍از طریق ثبت نام در ربات زیر شما هم می‌توانید برای همین کانال مطلب بفرستید.👇
 @GolddancerBot
 
 🌐 | دسترسی به ۲۵ کانال رقص :👇
 https://t.me/addlist/0gZ1uuwjNKM1OWRk
-➖➖➖➖➖➖➖➖" if user_caption else caption_footer.strip()
+➖➖➖➖➖➖➖➖
+""" if user_caption else caption_footer.strip()
 
     if file_info["type"] == "photo":
         await bot.send_photo(chat_id=ADMIN_ID, photo=file_info["file_id"], caption=admin_caption, parse_mode=ParseMode.HTML)
