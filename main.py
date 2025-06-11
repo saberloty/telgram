@@ -118,13 +118,13 @@ async def get_real_phone(message: Message, state: FSMContext):
     save_users(users)
 
     await message.answer("✅ ثبت‌نام شما با موفقیت انجام شد اکنون میتوانید عکس یا کلیپ بفرستید.", reply_markup=user_keyboard())
-    await bot.send_message(ADMIN_ID, f"<b>ثبت‌نام جدید:</b>
+    await bot.send_message(ADMIN_ID, f"""📝 <b>ثبت‌نام جدید:</b>
 👤 نام: {users[user_id]['name']}
 📸 اینستاگرام: {users[user_id]['instagram']}
 📞 شماره: {users[user_id]['phone']}
-🆔 آیدی عددی: <a href='tg://user?id={user_id}'>{user_id}</a>
-🔗 یوزرنیم: @{users[user_id]['username']}")
-    await state.clear()
+🆔 آیدی عددی: <a href="tg://user?id={user_id}">{user_id}</a>
+🔗 یوزرنیم: @{users[user_id]["username"]}
+""", parse_mode=ParseMode.HTML)
 
 @dp.message(RegisterState.waiting_for_phone)
 async def reject_typed_phone(message: Message):
