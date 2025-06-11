@@ -38,28 +38,23 @@ def save_users(data):
 
 users = load_users()
 
-def user_keyboard(user_id=None):
-    buttons = [
-        [KeyboardButton(text="📁 ارسالی‌های شما")],
-        [KeyboardButton(text="👤 پروفایل من")]
-    ]
-    if str(user_id) == str(ADMIN_ID):
-        buttons.append([KeyboardButton(text="👥 کاربران")])
-    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+def user_keyboard():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📁 ارسالی‌های شما")],
+            [KeyboardButton(text="👤 پروفایل من")]
+        ],
+        resize_keyboard=True
+    )
 
 @dp.message(F.text == "/start")
 async def cmd_start(message: Message, state: FSMContext):
     user_id = str(message.from_user.id)
-
-    if message.from_user.id == ADMIN_ID:
-        await message.answer("سلام مدیر عزیز! به پنل ادمین خوش آمدید.", reply_markup=user_keyboard(ADMIN_ID))
-        return
-
-    if user_id in users and users[user_id].get("completed"):
-        await message.answer("شما قبلاً ثبت‌نام کرده‌اید و می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=user_keyboard(user_id))
-        return
-
     name = message.from_user.first_name
+    if user_id in users and users[user_id].get("completed"):
+        await message.answer("شما قبلاً ثبت‌نام کرده‌اید. اکنون می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=user_keyboard())
+        return
+
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")]
     ])
@@ -72,7 +67,7 @@ async def cmd_start(message: Message, state: FSMContext):
 async def begin_register(callback: types.CallbackQuery, state: FSMContext):
     user_id = str(callback.from_user.id)
     if user_id in users and users[user_id].get("completed"):
-        await callback.message.answer("شما قبلاً ثبت‌نام کرده‌اید.", reply_markup=user_keyboard(user_id))
+        await callback.message.answer("شما قبلاً ثبت‌نام کرده‌اید.", reply_markup=user_keyboard())
         return
     users[user_id] = {"step": "ask_name"}
     save_users(users)
@@ -116,13 +111,13 @@ async def get_real_phone(message: Message, state: FSMContext):
     users[user_id].pop("step", None)
     save_users(users)
 
-    await message.answer("✅ ثبت‌نام شما با موفقیت انجام شد اکنون میتوانید عکس یا کلیپ بفرستید.", reply_markup=user_keyboard(user_id))
+    await message.answer("✅ ثبت‌نام شما با موفقیت انجام شد اکنون میتوانید عکس یا کلیپ بفرستید.", reply_markup=user_keyboard())
     await bot.send_message(ADMIN_ID, f"""
 📝 <b>ثبت‌نام جدید:</b>
 👤 نام: {users[user_id]['name']}
 📸 اینستاگرام: {users[user_id]['instagram']}
 📞 شماره: {users[user_id]['phone']}
-🆔 آیدی عددی: <a href="tg://user?id={user_id}">{user_id}</a>
+🆔 آیدی عددی: <a href=\"tg://user?id={user_id}\">{user_id}</a>
 🔗 یوزرنیم: @{users[user_id]["username"]}
 """)
     await state.clear()
@@ -185,15 +180,10 @@ async def show_profile(message: Message):
 📸 اینستاگرام: {data['instagram']}
 📞 شماره: {data['phone']}
 🔗 یوزرنیم: @{data['username']}
-🆔 آیدی عددی: <a href="tg://user?id={user_id}">{user_id}</a>
+🆔 آیدی عددی: <a href=\"tg://user?id={user_id}\">{user_id}</a>
 📂 تعداد فایل‌های ارسالی: {len(data.get('uploads', []))}
 🏅 وضعیت: {vip_status}
 """)
-
-@dp.message(F.text == "👥 کاربران")
-async def users_button_for_admin(message: Message):
-    if message.from_user.id == ADMIN_ID:
-        await list_users(message)
 
 @dp.message(F.text == "/users")
 async def list_users(message: Message):
@@ -206,7 +196,7 @@ async def list_users(message: Message):
 {vip_mark}<b>👤 نام:</b> {data['name']}
 📸 <b>اینستاگرام:</b> {data['instagram']}
 📞 <b>شماره:</b> {data['phone']}
-🆔 <b>آیدی عددی:</b> <a href="tg://user?id={uid}">{uid}</a>
+🆔 <b>آیدی عددی:</b> <a href=\"tg://user?id={uid}\">{uid}</a>
 🔗 <b>یوزرنیم:</b> @{data.get('username', 'ندارد')}
 """
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -245,7 +235,7 @@ async def handle_view_uploads(callback: types.CallbackQuery):
     await callback.answer()
 
 async def main():
-    await bot.send_message(ADMIN_ID, "✅ ربات با موفقیت دیپلوی و راه‌اندازی شد.")
+    await bot.send_message(ADMIN_ID, "✅ ربات با موفقیت دیپلوی شد و آماده است.")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
