@@ -1,37 +1,73 @@
-import logging import asyncio import json import os from aiogram import Bot, Dispatcher, types, F from aiogram.enums import ParseMode from aiogram.types import ( Message, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton ) from aiogram.fsm.context import FSMContext from aiogram.fsm.storage.memory import MemoryStorage from aiogram.fsm.state import State, StatesGroup from keep_alive import keep_alive
+import logging
+import asyncio
+import json
+import os
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.enums import ParseMode
+from aiogram.types import (
+    Message, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
+)
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.state import State, StatesGroup
+from keep_alive import keep_alive
 
-API_TOKEN = '8177436123:AAG2RuDLbRI6HdgsCTa7_75TJwuQ151ohLA' ADMIN_ID = 131555118 CHANNEL_ID = -1002798154695 USERS_FILE = "users.json"
+API_TOKEN = '8177436123:AAG2RuDLbRI6HdgsCTa7_75TJwuQ151ohLA'
+ADMIN_ID = 131555118
+CHANNEL_ID = -1002798154695
+USERS_FILE = "users.json"
 
-logging.basicConfig(level=logging.INFO) bot = Bot(token=API_TOKEN, parse_mode=ParseMode.HTML) dp = Dispatcher(storage=MemoryStorage())
+logging.basicConfig(level=logging.INFO)
+bot = Bot(token=API_TOKEN, parse_mode=ParseMode.HTML)
+dp = Dispatcher(storage=MemoryStorage())
 
-class RegisterState(StatesGroup): waiting_for_name = State() waiting_for_instagram = State() waiting_for_phone = State()
+class RegisterState(StatesGroup):
+    waiting_for_name = State()
+    waiting_for_instagram = State()
+    waiting_for_phone = State()
 
-def load_users(): if os.path.exists(USERS_FILE): with open(USERS_FILE, "r", encoding="utf-8") as f: return json.load(f) return {}
+def load_users():
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
 
-def save_users(data): with open(USERS_FILE, "w", encoding="utf-8") as f: json.dump(data, f, ensure_ascii=False, indent=2)
+def save_users(data):
+    with open(USERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 users = load_users()
 
-def user_keyboard(user_id=None): buttons = [ [KeyboardButton(text="📁 ارسالی‌های شما")], [KeyboardButton(text="👤 پروفایل من")] ] if str(user_id) == str(ADMIN_ID): buttons.append([KeyboardButton(text="👥 کاربران")]) return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+def user_keyboard(user_id=None):
+    buttons = [
+        [KeyboardButton(text="📁 ارسالی‌های شما")],
+        [KeyboardButton(text="👤 پروفایل من")]
+    ]
+    if str(user_id) == str(ADMIN_ID):
+        buttons.append([KeyboardButton(text="👥 کاربران")])
+    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
-@dp.message(F.text == "/start") async def cmd_start(message: Message, state: FSMContext): user_id = str(message.from_user.id)
+@dp.message(F.text == "/start")
+async def cmd_start(message: Message, state: FSMContext):
+    user_id = str(message.from_user.id)
 
-if message.from_user.id == ADMIN_ID:
-    await message.answer("سلام مدیر عزیز! به پنل ادمین خوش آمدید.", reply_markup=user_keyboard(ADMIN_ID))
-    return
+    if message.from_user.id == ADMIN_ID:
+        await message.answer("سلام مدیر عزیز! به پنل ادمین خوش آمدید.", reply_markup=user_keyboard(ADMIN_ID))
+        return
 
-if user_id in users and users[user_id].get("completed"):
-    await message.answer("شما قبلاً ثبت‌نام کرده‌اید و می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=user_keyboard(user_id))
-    return
+    if user_id in users and users[user_id].get("completed"):
+        await message.answer("شما قبلاً ثبت‌نام کرده‌اید و می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=user_keyboard(user_id))
+        return
 
-name = message.from_user.first_name
-kb = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")]
-])
-await message.answer(
-    f"سلام {name} عزیز 👋\nبرای استفاده از ربات ابتدا باید ثبت‌نام کنید تا بتوانید عکس و کلیپ خود را برای ما ارسال کنید.",
-    reply_markup=kb
-)
+    name = message.from_user.first_name
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")]
+    ])
+    await message.answer(
+        f"سلام {name} عزیز 👋\nبرای استفاده از ربات ابتدا باید ثبت‌نام کنید تا بتوانید عکس و کلیپ خود را برای ما ارسال کنید.",
+        reply_markup=kb
+    )
+
 @dp.callback_query(F.data == "start_register")
 async def begin_register(callback: types.CallbackQuery, state: FSMContext):
     user_id = str(callback.from_user.id)
