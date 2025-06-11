@@ -139,14 +139,7 @@ async def handle_media(message: Message):
         return
 
     file_info = {"type": "photo" if message.photo else "video", "file_id": None}
-    user_caption = message.caption or ""
-    caption = f"📤 ارسال جدید
-👤 @{message.from_user.username or 'ندارد'}
-🆔 <a href='tg://user?id={user_id}'>{user_id}</a>"
-    if user_caption:
-        caption += f"
-📝 کپشن:
-{user_caption}"
+    caption = f"📤 ارسال جدید\n👤 @{message.from_user.username or 'ندارد'}\n🆔 <a href='tg://user?id={user_id}'>{user_id}</a>"
 
     if message.photo:
         file_info["file_id"] = message.photo[-1].file_id
