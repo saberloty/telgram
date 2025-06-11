@@ -135,7 +135,7 @@ async def reject_typed_phone(message: Message):
 async def handle_media(message: Message):
     user_id = str(message.from_user.id)
     if user_id not in users or not users[user_id].get("completed"):
-        await message.answer("ابتدا ثبت نام را کامل کنید.")
+        await message.answer("ابتدا ثبت‌نام را کامل کنید.")
         return
 
     file_info = {
@@ -144,26 +144,31 @@ async def handle_media(message: Message):
     }
 
     user_caption = message.caption or ""
-    admin_caption = f"📤 ارسال جدید\n👤 @{message.from_user.username or 'ندارد'}\n🆔 <a href='tg://user?id={user_id}'>{user_id}</a>"
-    channel_caption = f"""{user_caption}
-➖➖➖➖➖➖➖➖
-✍از طریق ثبت نام در ربات زیر شما هم می‌توانید برای همین کانال مطلب بفرستید.👇
+    username = f"@{message.from_user.username}" if message.from_user.username else "ندارد"
+    id_line = f"🆔 آیدی عددی: <a href='tg://user?id={user_id}'>{user_id}</a>\n🔗 یوزرنیم: {username}"
+    admin_caption = f"{user_caption}\n\n{id_line}" if user_caption else id_line
+    channel_caption = f"{user_caption}\n\n➖➖➖➖➖➖➖➖
+✍ از طریق ثبت نام در ربات زیر شما هم می‌توانید برای همین کانال مطلب بفرستید.👇
 @GolddancerBot
 
-🌐 | دسترسی به ۲۵ کانال رقص :👇
+🌐 | دسترسی به ۲۵ کانال رقص:👇
 https://t.me/addlist/0gZ1uuwjNKM1OWRk
-➖➖➖➖➖➖➖➖
-""" if user_caption else caption_footer.strip()
+➖➖➖➖➖➖➖➖\n\n{id_line}" if user_caption else f"➖➖➖➖➖➖➖➖
+✍ از طریق ثبت نام در ربات زیر شما هم می‌توانید برای همین کانال مطلب بفرستید.👇
+@GolddancerBot
+
+🌐 | دسترسی به ۲۵ کانال رقص:👇
+https://t.me/addlist/0gZ1uuwjNKM1OWRk
+➖➖➖➖➖➖➖➖\n\n{id_line}"
 
     if file_info["type"] == "photo":
-        await bot.send_photo(chat_id=ADMIN_ID, photo=file_info["file_id"], caption=admin_caption, parse_mode=ParseMode.HTML)
-        await bot.send_photo(chat_id=CHANNEL_ID, photo=file_info["file_id"], caption=channel_caption, parse_mode=ParseMode.HTML)
+        await bot.send_photo(ADMIN_ID, file_info["file_id"], caption=admin_caption, parse_mode=ParseMode.HTML)
+        await bot.send_photo(CHANNEL_ID, file_info["file_id"], caption=channel_caption, parse_mode=ParseMode.HTML)
     else:
-        await bot.send_video(chat_id=ADMIN_ID, video=file_info["file_id"], caption=admin_caption, parse_mode=ParseMode.HTML)
-        await bot.send_video(chat_id=CHANNEL_ID, video=file_info["file_id"], caption=channel_caption, parse_mode=ParseMode.HTML)
+        await bot.send_video(ADMIN_ID, file_info["file_id"], caption=admin_caption, parse_mode=ParseMode.HTML)
+        await bot.send_video(CHANNEL_ID, file_info["file_id"], caption=channel_caption, parse_mode=ParseMode.HTML)
 
     users[user_id].setdefault("uploads", []).append(file_info)
-
     if len(users[user_id]["uploads"]) >= 5 and not users[user_id].get("is_vip"):
         users[user_id]["is_vip"] = True
         await message.answer("🎉 تبریک! شما به عضویت VIP ارتقا یافتید!")
