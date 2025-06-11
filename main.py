@@ -44,7 +44,8 @@ def user_keyboard():
         keyboard=[
             [KeyboardButton(text="📁 ارسالی‌های شما")],
             [KeyboardButton(text="👤 پروفایل من")]
-        ], resize_keyboard=True
+        ],
+        resize_keyboard=True
     )
 
 @dp.message(F.text == "/start")
@@ -62,7 +63,8 @@ async def cmd_start(message: Message, state: FSMContext):
         [InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")]
     ])
     await message.answer(
-        f"سلام {name} عزیز 👋\nبرای استفاده از ربات ابتدا باید ثبت‌نام کنید.", reply_markup=kb)
+        f"سلام {name} عزیز 👋\nبرای استفاده از ربات ابتدا باید ثبت‌نام کنید.",
+        reply_markup=kb)
 
 @dp.callback_query(F.data == "start_register")
 async def begin_register(callback: types.CallbackQuery, state: FSMContext):
@@ -118,7 +120,7 @@ async def get_real_phone(message: Message, state: FSMContext):
 👤 نام: {users[user_id]['name']}
 📸 اینستاگرام: {users[user_id]['instagram']}
 📞 شماره: {users[user_id]['phone']}
-🆔 <a href=\"tg://user?id={user_id}\">{user_id}</a>
+🆔 <a href="tg://user?id={user_id}">{user_id}</a>
 🔗 یوزرنیم: @{users[user_id]['username']}
 """)
     await state.clear()
@@ -133,33 +135,41 @@ async def handle_media(message: Message):
     if user_id not in users or not users[user_id].get("completed"):
         await message.answer("ابتدا ثبت‌نام را کامل کنید.")
         return
+
     file_info = {
         "type": "photo" if message.photo else "video",
         "file_id": message.photo[-1].file_id if message.photo else message.video.file_id
     }
+
     user_caption = message.caption or ""
     username = f"@{message.from_user.username}" if message.from_user.username else "ندارد"
     id_line = f"\n🆔 آیدی عددی: <a href='tg://user?id={user_id}'>{user_id}</a>\n🔗 یوزرنیم: {username}"
+
     footer = """
 ➖➖➖➖➖➖➖➖
 ✍ از طریق ثبت نام در ربات زیر شما هم می‌توانید برای همین کانال مطلب بفرستید.👇
 @GolddancerBot
+
 🌐 | دسترسی به ۲۵ کانال رقص:👇
 https://t.me/addlist/0gZ1uuwjNKM1OWRk
 ➖➖➖➖➖➖➖➖
 """.strip()
+
     admin_caption = f"{user_caption}{id_line}" if user_caption else id_line.strip()
     channel_caption = f"{user_caption}\n\n{footer}{id_line}" if user_caption else f"{footer}{id_line}"
+
     if file_info["type"] == "photo":
         await bot.send_photo(chat_id=ADMIN_ID, photo=file_info["file_id"], caption=admin_caption, parse_mode=ParseMode.HTML)
         await bot.send_photo(chat_id=CHANNEL_ID, photo=file_info["file_id"], caption=channel_caption, parse_mode=ParseMode.HTML)
     else:
         await bot.send_video(chat_id=ADMIN_ID, video=file_info["file_id"], caption=admin_caption, parse_mode=ParseMode.HTML)
         await bot.send_video(chat_id=CHANNEL_ID, video=file_info["file_id"], caption=channel_caption, parse_mode=ParseMode.HTML)
+
     users[user_id].setdefault("uploads", []).append(file_info)
     if len(users[user_id]["uploads"]) >= 5 and not users[user_id].get("is_vip"):
         users[user_id]["is_vip"] = True
         await message.answer("🎉 تبریک! شما به عضویت VIP ارتقا یافتید!")
+
     save_users(users)
     await message.answer("✅ فایل شما دریافت شد.")
 
@@ -189,7 +199,7 @@ async def show_profile(message: Message):
 📸 اینستاگرام: {data['instagram']}
 📞 شماره: {data['phone']}
 🔗 یوزرنیم: @{data['username']}
-🆔 آیدی عددی: <a href='tg://user?id={user_id}'>{user_id}</a>
+🆔 آیدی عددی: <a href="tg://user?id={user_id}">{user_id}</a>
 📂 تعداد فایل‌های ارسالی: {len(data.get('uploads', []))}
 🏅 وضعیت: {vip_status}
 """)
@@ -208,7 +218,40 @@ async def list_users(message: Message):
 🆔 <b>آیدی عددی:</b> <a href='tg://user?id={uid}'>{uid}</a>
 🔗 <b>یوزرنیم:</b> @{data.get('username', 'ندارد')}
 """
-            await message.answer(info)
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                [
+                    InlineKeyboardButton(text="🗑 حذف کاربر", callback_data=f"delete_{uid}"),
+                    InlineKeyboardButton(text="📁 ارسالی‌ها", callback_data=f"view_{uid}")
+                ]
+            ])
+            await message.answer(info, reply_markup=keyboard)
+
+@dp.callback_query(F.data.startswith("delete_"))
+async def handle_delete_user(callback: types.CallbackQuery):
+    if callback.from_user.id != ADMIN_ID:
+        return
+    user_id = callback.data.replace("delete_", "")
+    if user_id in users:
+        users.pop(user_id)
+        save_users(users)
+        await callback.message.edit_text("❌ کاربر حذف شد.")
+        await callback.answer("حذف شد.")
+
+@dp.callback_query(F.data.startswith("view_"))
+async def handle_view_uploads(callback: types.CallbackQuery):
+    if callback.from_user.id != ADMIN_ID:
+        return
+    user_id = callback.data.replace("view_", "")
+    uploads = users.get(user_id, {}).get("uploads", [])
+    if not uploads:
+        await callback.message.answer("کاربر فایلی ارسال نکرده است.")
+        return
+    for item in uploads:
+        if item["type"] == "photo":
+            await bot.send_photo(chat_id=ADMIN_ID, photo=item["file_id"])
+        else:
+            await bot.send_video(chat_id=ADMIN_ID, video=item["file_id"])
+    await callback.answer()
 
 async def main():
     await bot.send_message(ADMIN_ID, "✅ ربات با موفقیت دیپلوی و راه‌اندازی شد.")
