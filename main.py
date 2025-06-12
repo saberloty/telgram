@@ -43,18 +43,17 @@ users = load_users()
 
 def user_keyboard(is_admin=False, bot_enabled=True):
     buttons = [
-        [KeyboardButton(text="📁 ارسالی‌های شما")],
-        [KeyboardButton(text="👤 پروفایل من")]
     ]
     if is_admin:
-        buttons.append([KeyboardButton(text="👥 کاربران")])
         if bot_enabled:
-            buttons.append([KeyboardButton(text="🛑 خاموش کردن ربات")])
         else:
-            buttons.append([KeyboardButton(text="✅ روشن کردن ربات")])
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
-]
+],
             [KeyboardButton(text="👤 پروفایل من")]
+        ],
+        resize_keyboard=True
+    )
+],
         ],
         resize_keyboard=True
     )
@@ -65,13 +64,12 @@ async def cmd_start(message: Message, state: FSMContext):
     name = message.from_user.first_name
     if user_id == str(ADMIN_ID):
         await message.answer("سلام ادمین عزیز، به پنل مدیریت خوش آمدید.", reply_markup=ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text="👥 کاربران")], [KeyboardButton(text="🛑 خاموش کردن ربات")]], resize_keyboard=True))
+            keyboard=[[KeyboardButton(text="👥 کاربران")], [KeyboardButton(text="🛑 خاموش کردن ربات")], resize_keyboard=True)
         return
     if user_id in users and users[user_id].get("completed"):
         await message.answer("شما قبلاً ثبت‌نام کرده‌اید و می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=user_keyboard())
         return
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")]
     ])
     await message.answer(
         f"سلام {name} عزیز 👋\nبرای استفاده از ربات ابتدا باید ثبت‌نام کنید.",
@@ -104,7 +102,9 @@ async def get_instagram(message: Message, state: FSMContext):
     users[user_id]["step"] = "ask_phone"
     save_users(users)
     kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="📱 ارسال شماره من", request_contact=True)]],
+        keyboard=[[KeyboardButton(text="📱 ارسال شماره من", request_contact=True)],
+        resize_keyboard=True, one_time_keyboard=True
+    )
         resize_keyboard=True, one_time_keyboard=True
     )
     await message.answer("فقط از طریق دکمه زیر شماره خود را ارسال کنید:", reply_markup=kb)
@@ -231,8 +231,6 @@ async def list_users(message: Message):
 """
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
                 [
-                    InlineKeyboardButton(text="🗑 حذف کاربر", callback_data=f"delete_{uid}"),
-                    InlineKeyboardButton(text="📁 ارسالی‌ها", callback_data=f"view_{uid}")
                 ]
             ])
             await message.answer(info, reply_markup=keyboard)
@@ -292,9 +290,15 @@ def get_admin_keyboard():
             ],
             resize_keyboard=True
         )
+            keyboard=[
+            ],
+            resize_keyboard=True
+        )
     else:
         return ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text="✅ روشن کردن ربات")]],
+            keyboard=[[KeyboardButton(text="✅ روشن کردن ربات")],
+            resize_keyboard=True
+        )
             resize_keyboard=True
         )
 
