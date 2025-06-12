@@ -264,6 +264,34 @@ async def shutdown_bot(message: Message):
         sys.exit()
 
 
+
+# 🟢 کنترل روشن/خاموش بودن ربات
+bot_enabled = True
+
+@dp.message(F.text == "🛑 خاموش کردن ربات")
+async def shutdown_bot(message: Message):
+    global bot_enabled
+    if message.from_user.id == ADMIN_ID:
+        bot_enabled = False
+        await message.answer("ربات با موفقیت خاموش شد ✅", reply_markup=ReplyKeyboardMarkup(
+            keyboard=[[KeyboardButton(text="✅ روشن کردن ربات")]],
+            resize_keyboard=True
+        ))
+
+@dp.message(F.text == "✅ روشن کردن ربات")
+async def start_bot(message: Message):
+    global bot_enabled
+    if message.from_user.id == ADMIN_ID:
+        bot_enabled = True
+        await message.answer("ربات دوباره فعال شد ✅", reply_markup=user_keyboard(is_admin=True))
+
+@dp.message()
+async def block_when_disabled(message: Message):
+    if not bot_enabled and message.from_user.id != ADMIN_ID:
+        await message.answer("🤖 ربات موقتاً خاموش است. لطفاً بعداً مراجعه کنید.")
+        return
+
+
 async def main():
     await bot.send_message(ADMIN_ID, "✅ ربات با موفقیت دیپلوی و راه‌اندازی شد.")
     await dp.start_polling(bot)
