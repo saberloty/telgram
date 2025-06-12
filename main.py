@@ -53,7 +53,7 @@ def user_keyboard(is_admin=False, bot_enabled=True):
         else:
             buttons.append([KeyboardButton(text="✅ روشن کردن ربات")])
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
-    )
+    
 
 @dp.message(F.text == "/start")
 async def cmd_start(message: Message, state: FSMContext):
