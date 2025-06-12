@@ -2,7 +2,6 @@ import logging
 import asyncio
 import json
 import os
-import sys
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
 from aiogram.types import (
@@ -40,20 +39,14 @@ def save_users(data):
 
 users = load_users()
 
-
-def user_keyboard(is_admin=False, bot_enabled=True):
-    buttons = [
-        [KeyboardButton(text="📁 ارسالی‌های شما")],
-        [KeyboardButton(text="👤 پروفایل من")]
-    ]
-    if is_admin:
-        buttons.append([KeyboardButton(text="👥 کاربران")])
-        if bot_enabled:
-            buttons.append([KeyboardButton(text="🛑 خاموش کردن ربات")])
-        else:
-            buttons.append([KeyboardButton(text="✅ روشن کردن ربات")])
-    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
-    
+def user_keyboard():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📁 ارسالی‌های شما")],
+            [KeyboardButton(text="👤 پروفایل من")]
+        ],
+        resize_keyboard=True
+    )
 
 @dp.message(F.text == "/start")
 async def cmd_start(message: Message, state: FSMContext):
@@ -61,7 +54,7 @@ async def cmd_start(message: Message, state: FSMContext):
     name = message.from_user.first_name
     if user_id == str(ADMIN_ID):
         await message.answer("سلام ادمین عزیز، به پنل مدیریت خوش آمدید.", reply_markup=ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text="👥 کاربران")], [KeyboardButton(text="🛑 خاموش کردن ربات")]], resize_keyboard=True))
+            keyboard=[[KeyboardButton(text="👥 کاربران")]], resize_keyboard=True))
         return
     if user_id in users and users[user_id].get("completed"):
         await message.answer("شما قبلاً ثبت‌نام کرده‌اید و می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=user_keyboard())
@@ -259,41 +252,6 @@ async def handle_view_uploads(callback: types.CallbackQuery):
         else:
             await bot.send_video(chat_id=ADMIN_ID, video=item["file_id"])
     await callback.answer()
-
-
-@dp.message(F.text == "🛑 خاموش کردن ربات")
-async def shutdown_bot(message: Message):
-    if message.from_user.id == ADMIN_ID:
-        await message.answer("ربات در حال خاموش شدن است...")
-        await bot.session.close()
-        await dp.storage.close()
-        sys.exit()
-
-
-
-# 🟢 کنترل روشن/خاموش بودن ربات
-bot_enabled = True
-
-@dp.message(F.text == "🛑 خاموش کردن ربات")
-async def shutdown_bot(message: Message):
-    global bot_enabled
-    if message.from_user.id == ADMIN_ID:
-        bot_enabled = False
-        await message.answer("ربات با موفقیت خاموش شد ✅", reply_markup=user_keyboard(is_admin=True, bot_enabled=False))
-
-@dp.message(F.text == "✅ روشن کردن ربات")
-async def start_bot(message: Message):
-    global bot_enabled
-    if message.from_user.id == ADMIN_ID:
-        bot_enabled = True
-        await message.answer("ربات دوباره فعال شد ✅", reply_markup=user_keyboard(is_admin=True, bot_enabled=True))
-
-@dp.message()
-async def block_when_disabled(message: Message):
-    if not bot_enabled and message.from_user.id != ADMIN_ID:
-        await message.answer("🤖 ربات موقتاً خاموش است. لطفاً بعداً مراجعه کنید.")
-        return
-
 
 async def main():
     await bot.send_message(ADMIN_ID, "✅ ربات با موفقیت دیپلوی و راه‌اندازی شد.")
