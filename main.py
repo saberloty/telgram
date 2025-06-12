@@ -40,10 +40,20 @@ def save_users(data):
 
 users = load_users()
 
-def user_keyboard():
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="📁 ارسالی‌های شما")],
+
+def user_keyboard(is_admin=False, bot_enabled=True):
+    buttons = [
+        [KeyboardButton(text="📁 ارسالی‌های شما")],
+        [KeyboardButton(text="👤 پروفایل من")]
+    ]
+    if is_admin:
+        buttons.append([KeyboardButton(text="👥 کاربران")])
+        if bot_enabled:
+            buttons.append([KeyboardButton(text="🛑 خاموش کردن ربات")])
+        else:
+            buttons.append([KeyboardButton(text="✅ روشن کردن ربات")])
+    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+],
             [KeyboardButton(text="👤 پروفایل من")]
         ],
         resize_keyboard=True
@@ -255,13 +265,18 @@ async def handle_view_uploads(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.message(F.text == "🛑 خاموش کردن ربات")
-async def shutdown_bot(message: Message):
+
+async def start_bot(message: Message):
+    global bot_enabled
     if message.from_user.id == ADMIN_ID:
-        await message.answer("ربات در حال خاموش شدن است...")
-        await bot.session.close()
-        await dp.storage.close()
-        sys.exit()
+        bot_enabled = True
+        await message.answer("ربات دوباره فعال شد ✅", reply_markup=user_keyboard(is_admin=True, bot_enabled=True))
+
+@dp.message()
+async def block_when_disabled(message: Message):
+    if not bot_enabled and message.from_user.id != ADMIN_ID:
+        await message.answer("🤖 ربات موقتاً خاموش است. لطفاً بعداً مراجعه کنید.")
+        return
 
 
 
@@ -297,7 +312,6 @@ async def enable_bot(message: Message):
         bot_enabled = True
         await message.answer("ربات دوباره فعال شد ✅", reply_markup=get_admin_keyboard())
 
-# پاسخ‌دهی به کاربران در زمان خاموش بودن
 @dp.message()
 async def block_while_disabled(message: Message):
     if not bot_enabled and message.from_user.id != ADMIN_ID:
