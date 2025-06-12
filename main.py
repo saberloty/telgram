@@ -265,28 +265,41 @@ async def shutdown_bot(message: Message):
 
 
 
-# 🟢 کنترل روشن/خاموش بودن ربات
+# کنترل وضعیت روشن یا خاموش بودن ربات
 bot_enabled = True
+
+def get_admin_keyboard():
+    if bot_enabled:
+        return ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="👥 کاربران")],
+                [KeyboardButton(text="🛑 خاموش کردن ربات")]
+            ],
+            resize_keyboard=True
+        )
+    else:
+        return ReplyKeyboardMarkup(
+            keyboard=[[KeyboardButton(text="✅ روشن کردن ربات")]],
+            resize_keyboard=True
+        )
 
 @dp.message(F.text == "🛑 خاموش کردن ربات")
 async def shutdown_bot(message: Message):
     global bot_enabled
     if message.from_user.id == ADMIN_ID:
         bot_enabled = False
-        await message.answer("ربات با موفقیت خاموش شد ✅", reply_markup=ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text="✅ روشن کردن ربات")]],
-            resize_keyboard=True
-        ))
+        await message.answer("ربات با موفقیت خاموش شد ✅", reply_markup=get_admin_keyboard())
 
 @dp.message(F.text == "✅ روشن کردن ربات")
-async def start_bot(message: Message):
+async def enable_bot(message: Message):
     global bot_enabled
     if message.from_user.id == ADMIN_ID:
         bot_enabled = True
-        await message.answer("ربات دوباره فعال شد ✅", reply_markup=user_keyboard(is_admin=True))
+        await message.answer("ربات دوباره فعال شد ✅", reply_markup=get_admin_keyboard())
 
+# پاسخ‌دهی به کاربران در زمان خاموش بودن
 @dp.message()
-async def block_when_disabled(message: Message):
+async def block_while_disabled(message: Message):
     if not bot_enabled and message.from_user.id != ADMIN_ID:
         await message.answer("🤖 ربات موقتاً خاموش است. لطفاً بعداً مراجعه کنید.")
         return
