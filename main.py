@@ -59,15 +59,6 @@ def user_keyboard(is_admin=False, bot_enabled=True):
             [KeyboardButton(text="👤 پروفایل من")]
         ]
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
-],
-            [KeyboardButton(text="👤 پروفایل من")]
-        ],
-        resize_keyboard=True
-    )
-],
-        ],
-        resize_keyboard=True
-    )
 
 @dp.message(F.text == "/start")
 async def cmd_start(message: Message, state: FSMContext):
@@ -75,12 +66,12 @@ async def cmd_start(message: Message, state: FSMContext):
     name = message.from_user.first_name
     if user_id == str(ADMIN_ID):
         await message.answer("سلام ادمین عزیز، به پنل مدیریت خوش آمدید.", reply_markup=ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text="👥 کاربران")], [KeyboardButton(text="🛑 خاموش کردن ربات")], resize_keyboard=True)
-        return
+keyboard=[[KeyboardButton(text="👥 کاربران")], [KeyboardButton(text="🛑 خاموش کردن ربات")]]
+reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
     if user_id in users and users[user_id].get("completed"):
         await message.answer("شما قبلاً ثبت‌نام کرده‌اید و می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=user_keyboard())
         return
-    kb = InlineKeyboardMarkup(inline_keyboard=[
+kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")]])
     ])
     await message.answer(
         f"سلام {name} عزیز 👋\nبرای استفاده از ربات ابتدا باید ثبت‌نام کنید.",
@@ -113,8 +104,7 @@ async def get_instagram(message: Message, state: FSMContext):
     users[user_id]["step"] = "ask_phone"
     save_users(users)
     kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="📱 ارسال شماره من", request_contact=True)],
-        resize_keyboard=True, one_time_keyboard=True
+kb = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="📱 ارسال شماره من", request_contact=True)]], resize_keyboard=True, one_time_keyboard=True)
     )
         resize_keyboard=True, one_time_keyboard=True
     )
@@ -307,11 +297,6 @@ def get_admin_keyboard():
         )
     else:
         return ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text="✅ روشن کردن ربات")],
-            resize_keyboard=True
-        )
-            resize_keyboard=True
-        )
 
 @dp.message(F.text == "🛑 خاموش کردن ربات")
 async def shutdown_bot(message: Message):
