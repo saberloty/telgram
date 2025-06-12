@@ -52,13 +52,12 @@ async def cmd_start(message: Message, state: FSMContext):
     user_id = str(message.from_user.id)
     name = message.from_user.first_name
 
-    if user_id in users and users[user_id].get("completed"):
-        kb = user_keyboard(is_admin=(message.from_user.id == ADMIN_ID))
-        await message.answer("شما قبلاً ثبت‌نام کرده‌اید. اکنون می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=kb)
-        return
-
     if message.from_user.id == ADMIN_ID:
         await message.answer("سلام ادمین عزیز. شما به پنل مدیریتی دسترسی دارید.", reply_markup=user_keyboard(is_admin=True))
+        return
+
+    if user_id in users and users[user_id].get("completed"):
+        await message.answer("شما قبلاً ثبت‌نام کرده‌اید. اکنون می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=user_keyboard())
         return
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -138,7 +137,7 @@ async def shutdown_bot(message: Message):
         sys.exit()
 
 async def main():
-    await bot.send_message(ADMIN_ID, "✅ ربات شما با موفقیت دیپلوی و راه‌اندازی شد.")
+    await bot.send_message(ADMIN_ID, "✅ ربات با موفقیت دیپلوی و راه‌اندازی شد.")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
