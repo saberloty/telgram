@@ -138,7 +138,7 @@ async def shutdown_bot(message: Message):
         sys.exit()
 
 async def main():
-    await bot.send_message(ADMIN_ID, "✅ ربات با موفقیت دیپلوی و راه‌اندازی شد.")
+    await bot.send_message(ADMIN_ID, "✅ ربات شما با موفقیت دیپلوی و راه‌اندازی شد.")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
