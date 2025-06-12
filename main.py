@@ -12,6 +12,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.state import State, StatesGroup
 from keep_alive import keep_alive
+import sys
+
 
 API_TOKEN = '8177436123:AAG2RuDLbRI6HdgsCTa7_75TJwuQ151ohLA'
 ADMIN_ID = 131555118
@@ -252,6 +254,16 @@ async def handle_view_uploads(callback: types.CallbackQuery):
         else:
             await bot.send_video(chat_id=ADMIN_ID, video=item["file_id"])
     await callback.answer()
+
+
+@dp.message(F.text == "🛑 خاموش کردن ربات")
+async def shutdown_bot(message: Message):
+    if message.from_user.id == ADMIN_ID:
+        await message.answer("ربات در حال خاموش شدن است...")
+        await bot.session.close()
+        await dp.storage.close()
+        sys.exit()
+
 
 async def main():
     await bot.send_message(ADMIN_ID, "✅ ربات با موفقیت دیپلوی و راه‌اندازی شد.")
