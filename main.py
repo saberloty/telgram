@@ -2,7 +2,6 @@ import logging
 import asyncio
 import json
 import os
-import sys
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
 from aiogram.types import (
@@ -55,7 +54,7 @@ async def cmd_start(message: Message, state: FSMContext):
     name = message.from_user.first_name
     if user_id == str(ADMIN_ID):
         await message.answer("سلام ادمین عزیز، به پنل مدیریت خوش آمدید.", reply_markup=ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text="👥 کاربران")], [KeyboardButton(text="🛑 خاموش کردن ربات")]], resize_keyboard=True))
+            keyboard=[[KeyboardButton(text="👥 کاربران")]], resize_keyboard=True))
         return
     if user_id in users and users[user_id].get("completed"):
         await message.answer("شما قبلاً ثبت‌نام کرده‌اید و می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=user_keyboard())
@@ -255,13 +254,32 @@ async def handle_view_uploads(callback: types.CallbackQuery):
     await callback.answer()
 
 
+# حالت روشن/خاموش ربات
+bot_enabled = True
+
 @dp.message(F.text == "🛑 خاموش کردن ربات")
 async def shutdown_bot(message: Message):
+    global bot_enabled
     if message.from_user.id == ADMIN_ID:
-        await message.answer("ربات در حال خاموش شدن است...")
-        await bot.session.close()
-        await dp.storage.close()
-        sys.exit()
+        bot_enabled = False
+        await message.answer("ربات با موفقیت خاموش شد ✅", reply_markup=ReplyKeyboardMarkup(
+            keyboard=[[KeyboardButton(text="✅ روشن کردن ربات")]],
+            resize_keyboard=True
+        ))
+
+@dp.message(F.text == "✅ روشن کردن ربات")
+async def start_bot(message: Message):
+    global bot_enabled
+    if message.from_user.id == ADMIN_ID:
+        bot_enabled = True
+        await message.answer("ربات دوباره فعال شد ✅", reply_markup=user_keyboard(is_admin=True))
+
+# فیلتر اصلی ربات: در صورت خاموش بودن، به هیچ درخواست دیگری پاسخ نمی‌دهد (غیراز ادمین)
+@dp.message()
+async def block_when_disabled(message: Message):
+    if not bot_enabled and message.from_user.id != ADMIN_ID:
+        await message.answer("🤖 ربات موقتاً خاموش است. لطفاً بعداً مراجعه کنید.")
+        return
 
 
 async def main():
