@@ -40,10 +40,20 @@ def save_users(data):
 
 users = load_users()
 
-def user_keyboard():
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="📁 ارسالی‌های شما")],
+
+def user_keyboard(is_admin=False, bot_enabled=True):
+    buttons = [
+        [KeyboardButton(text="📁 ارسالی‌های شما")],
+        [KeyboardButton(text="👤 پروفایل من")]
+    ]
+    if is_admin:
+        buttons.append([KeyboardButton(text="👥 کاربران")])
+        if bot_enabled:
+            buttons.append([KeyboardButton(text="🛑 خاموش کردن ربات")])
+        else:
+            buttons.append([KeyboardButton(text="✅ روشن کردن ربات")])
+    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+],
             [KeyboardButton(text="👤 پروفایل من")]
         ],
         resize_keyboard=True
@@ -273,17 +283,14 @@ async def shutdown_bot(message: Message):
     global bot_enabled
     if message.from_user.id == ADMIN_ID:
         bot_enabled = False
-        await message.answer("ربات با موفقیت خاموش شد ✅", reply_markup=ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text="✅ روشن کردن ربات")]],
-            resize_keyboard=True
-        ))
+        await message.answer("ربات با موفقیت خاموش شد ✅", reply_markup=user_keyboard(is_admin=True, bot_enabled=False))
 
 @dp.message(F.text == "✅ روشن کردن ربات")
 async def start_bot(message: Message):
     global bot_enabled
     if message.from_user.id == ADMIN_ID:
         bot_enabled = True
-        await message.answer("ربات دوباره فعال شد ✅", reply_markup=user_keyboard(is_admin=True))
+        await message.answer("ربات دوباره فعال شد ✅", reply_markup=user_keyboard(is_admin=True, bot_enabled=True))
 
 @dp.message()
 async def block_when_disabled(message: Message):
