@@ -42,23 +42,22 @@ users = load_users()
 
 
 def user_keyboard(is_admin=False, bot_enabled=True):
+    buttons = [
+        [KeyboardButton(text="📁 ارسالی‌های شما")],
+        [KeyboardButton(text="👤 پروفایل من")]
+    ]
     if is_admin:
+        buttons.append([KeyboardButton(text="👥 کاربران")])
         if bot_enabled:
-            buttons = [
-                [KeyboardButton(text="👥 کاربران")],
-                [KeyboardButton(text="🛑 خاموش کردن ربات")]
-            ]
+            buttons.append([KeyboardButton(text="🛑 خاموش کردن ربات")])
         else:
-            buttons = [
-                [KeyboardButton(text="👥 کاربران")],
-                [KeyboardButton(text="✅ روشن کردن ربات")]
-            ]
-    else:
-        buttons = [
-            [KeyboardButton(text="📁 ارسالی‌های شما")],
-            [KeyboardButton(text="👤 پروفایل من")]
-        ]
+            buttons.append([KeyboardButton(text="✅ روشن کردن ربات")])
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+],
+            [KeyboardButton(text="👤 پروفایل من")]
+        ],
+        resize_keyboard=True
+    )
 
 @dp.message(F.text == "/start")
 async def cmd_start(message: Message, state: FSMContext):
@@ -66,12 +65,13 @@ async def cmd_start(message: Message, state: FSMContext):
     name = message.from_user.first_name
     if user_id == str(ADMIN_ID):
         await message.answer("سلام ادمین عزیز، به پنل مدیریت خوش آمدید.", reply_markup=ReplyKeyboardMarkup(
-keyboard=[[KeyboardButton(text="👥 کاربران")], [KeyboardButton(text="🛑 خاموش کردن ربات")]]
-reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
+            keyboard=[[KeyboardButton(text="👥 کاربران")], [KeyboardButton(text="🛑 خاموش کردن ربات")]], resize_keyboard=True))
+        return
     if user_id in users and users[user_id].get("completed"):
         await message.answer("شما قبلاً ثبت‌نام کرده‌اید و می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=user_keyboard())
         return
-kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")]])
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")]
     ])
     await message.answer(
         f"سلام {name} عزیز 👋\nبرای استفاده از ربات ابتدا باید ثبت‌نام کنید.",
@@ -104,8 +104,7 @@ async def get_instagram(message: Message, state: FSMContext):
     users[user_id]["step"] = "ask_phone"
     save_users(users)
     kb = ReplyKeyboardMarkup(
-kb = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="📱 ارسال شماره من", request_contact=True)]], resize_keyboard=True, one_time_keyboard=True)
-    )
+        keyboard=[[KeyboardButton(text="📱 ارسال شماره من", request_contact=True)]],
         resize_keyboard=True, one_time_keyboard=True
     )
     await message.answer("فقط از طریق دکمه زیر شماره خود را ارسال کنید:", reply_markup=kb)
@@ -232,6 +231,8 @@ async def list_users(message: Message):
 """
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
                 [
+                    InlineKeyboardButton(text="🗑 حذف کاربر", callback_data=f"delete_{uid}"),
+                    InlineKeyboardButton(text="📁 ارسالی‌ها", callback_data=f"view_{uid}")
                 ]
             ])
             await message.answer(info, reply_markup=keyboard)
@@ -264,7 +265,27 @@ async def handle_view_uploads(callback: types.CallbackQuery):
     await callback.answer()
 
 
+@dp.message(F.text == "🛑 خاموش کردن ربات")
+async def shutdown_bot(message: Message):
+    if message.from_user.id == ADMIN_ID:
+        await message.answer("ربات در حال خاموش شدن است...")
+        await bot.session.close()
+        await dp.storage.close()
+        sys.exit()
 
+
+
+# 🟢 کنترل روشن/خاموش بودن ربات
+bot_enabled = True
+
+@dp.message(F.text == "🛑 خاموش کردن ربات")
+async def shutdown_bot(message: Message):
+    global bot_enabled
+    if message.from_user.id == ADMIN_ID:
+        bot_enabled = False
+        await message.answer("ربات با موفقیت خاموش شد ✅", reply_markup=user_keyboard(is_admin=True, bot_enabled=False))
+
+@dp.message(F.text == "✅ روشن کردن ربات")
 async def start_bot(message: Message):
     global bot_enabled
     if message.from_user.id == ADMIN_ID:
@@ -273,47 +294,6 @@ async def start_bot(message: Message):
 
 @dp.message()
 async def block_when_disabled(message: Message):
-    if not bot_enabled and message.from_user.id != ADMIN_ID:
-        await message.answer("🤖 ربات موقتاً خاموش است. لطفاً بعداً مراجعه کنید.")
-        return
-
-
-
-# کنترل وضعیت روشن یا خاموش بودن ربات
-bot_enabled = True
-
-def get_admin_keyboard():
-    if bot_enabled:
-        return ReplyKeyboardMarkup(
-            keyboard=[
-                [KeyboardButton(text="👥 کاربران")],
-                [KeyboardButton(text="🛑 خاموش کردن ربات")]
-            ],
-            resize_keyboard=True
-        )
-            keyboard=[
-            ],
-            resize_keyboard=True
-        )
-    else:
-        return ReplyKeyboardMarkup(
-
-@dp.message(F.text == "🛑 خاموش کردن ربات")
-async def shutdown_bot(message: Message):
-    global bot_enabled
-    if message.from_user.id == ADMIN_ID:
-        bot_enabled = False
-        await message.answer("ربات با موفقیت خاموش شد ✅", reply_markup=get_admin_keyboard())
-
-@dp.message(F.text == "✅ روشن کردن ربات")
-async def enable_bot(message: Message):
-    global bot_enabled
-    if message.from_user.id == ADMIN_ID:
-        bot_enabled = True
-        await message.answer("ربات دوباره فعال شد ✅", reply_markup=get_admin_keyboard())
-
-@dp.message()
-async def block_while_disabled(message: Message):
     if not bot_enabled and message.from_user.id != ADMIN_ID:
         await message.answer("🤖 ربات موقتاً خاموش است. لطفاً بعداً مراجعه کنید.")
         return
