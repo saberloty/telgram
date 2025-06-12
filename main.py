@@ -12,8 +12,6 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.state import State, StatesGroup
 from keep_alive import keep_alive
-import sys
-
 
 API_TOKEN = '8177436123:AAG2RuDLbRI6HdgsCTa7_75TJwuQ151ohLA'
 ADMIN_ID = 131555118
@@ -41,14 +39,16 @@ def save_users(data):
 
 users = load_users()
 
-def user_keyboard():
-    return ReplyKeyboardMarkup(
-        keyboard=[
+def user_keyboard(is_admin=False):
+    buttons = [
             [KeyboardButton(text="📁 ارسالی‌های شما")],
             [KeyboardButton(text="👤 پروفایل من")]
         ],
-        resize_keyboard=True
-    )
+        ]
+    if is_admin:
+        buttons.append([KeyboardButton(text="📋 لیست کاربران")])
+        buttons.append([KeyboardButton(text="🛑 خاموش کردن ربات")])
+    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
 @dp.message(F.text == "/start")
 async def cmd_start(message: Message, state: FSMContext):
@@ -59,7 +59,7 @@ async def cmd_start(message: Message, state: FSMContext):
             keyboard=[[KeyboardButton(text="👥 کاربران")]], resize_keyboard=True))
         return
     if user_id in users and users[user_id].get("completed"):
-        await message.answer("شما قبلاً ثبت‌نام کرده‌اید و می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=user_keyboard())
+        await message.answer("شما قبلاً ثبت‌نام کرده‌اید و می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=user_keyboard(is_admin=True))
         return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")]
@@ -72,7 +72,7 @@ async def cmd_start(message: Message, state: FSMContext):
 async def begin_register(callback: types.CallbackQuery, state: FSMContext):
     user_id = str(callback.from_user.id)
     if user_id in users and users[user_id].get("completed"):
-        await callback.message.answer("شما قبلاً ثبت‌نام کرده‌اید.", reply_markup=user_keyboard())
+        await callback.message.answer("شما قبلاً ثبت‌نام کرده‌اید.", reply_markup=user_keyboard(is_admin=True))
         return
     users[user_id] = {"step": "ask_name"}
     save_users(users)
@@ -116,7 +116,7 @@ async def get_real_phone(message: Message, state: FSMContext):
     })
     users[user_id].pop("step", None)
     save_users(users)
-    await message.answer("✅ ثبت‌نام شما با موفقیت انجام شد.", reply_markup=user_keyboard())
+    await message.answer("✅ ثبت‌نام شما با موفقیت انجام شد.", reply_markup=user_keyboard(is_admin=True))
     await bot.send_message(ADMIN_ID, f"""
 <b>ثبت‌نام جدید:</b>
 👤 نام: {users[user_id]['name']}
@@ -254,16 +254,6 @@ async def handle_view_uploads(callback: types.CallbackQuery):
         else:
             await bot.send_video(chat_id=ADMIN_ID, video=item["file_id"])
     await callback.answer()
-
-
-@dp.message(F.text == "🛑 خاموش کردن ربات")
-async def shutdown_bot(message: Message):
-    if message.from_user.id == ADMIN_ID:
-        await message.answer("ربات در حال خاموش شدن است...")
-        await bot.session.close()
-        await dp.storage.close()
-        sys.exit()
-
 
 async def main():
     await bot.send_message(ADMIN_ID, "✅ ربات با موفقیت دیپلوی و راه‌اندازی شد.")
