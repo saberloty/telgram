@@ -42,11 +42,22 @@ users = load_users()
 
 
 def user_keyboard(is_admin=False, bot_enabled=True):
-    buttons = [
-    ]
     if is_admin:
         if bot_enabled:
+            buttons = [
+                [KeyboardButton(text="👥 کاربران")],
+                [KeyboardButton(text="🛑 خاموش کردن ربات")]
+            ]
         else:
+            buttons = [
+                [KeyboardButton(text="👥 کاربران")],
+                [KeyboardButton(text="✅ روشن کردن ربات")]
+            ]
+    else:
+        buttons = [
+            [KeyboardButton(text="📁 ارسالی‌های شما")],
+            [KeyboardButton(text="👤 پروفایل من")]
+        ]
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 ],
             [KeyboardButton(text="👤 پروفایل من")]
