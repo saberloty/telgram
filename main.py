@@ -2,9 +2,9 @@ import logging
 import asyncio
 import json
 import os
+import sys
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
-import sys
 from aiogram.types import (
     Message, KeyboardButton, ReplyKeyboardMarkup,
     InlineKeyboardMarkup, InlineKeyboardButton
@@ -40,16 +40,13 @@ def save_users(data):
 
 users = load_users()
 
-def user_keyboard(is_admin=False):
+def user_keyboard():
     return ReplyKeyboardMarkup(
-        buttons = [
+        keyboard=[
             [KeyboardButton(text="📁 ارسالی‌های شما")],
             [KeyboardButton(text="👤 پروفایل من")]
         ],
-            if is_admin:
-        buttons.append([KeyboardButton(text='📋 لیست کاربران')])
-        buttons.append([KeyboardButton(text='🛑 خاموش کردن ربات')])
-    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+        resize_keyboard=True
     )
 
 @dp.message(F.text == "/start")
@@ -58,15 +55,12 @@ async def cmd_start(message: Message, state: FSMContext):
     name = message.from_user.first_name
     if user_id == str(ADMIN_ID):
         await message.answer("سلام ادمین عزیز، به پنل مدیریت خوش آمدید.", reply_markup=ReplyKeyboardMarkup(
-            buttons = [[KeyboardButton(text="👥 کاربران")]],     if is_admin:
-        buttons.append([KeyboardButton(text='📋 لیست کاربران')])
-        buttons.append([KeyboardButton(text='🛑 خاموش کردن ربات')])
-    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)))
+            keyboard=[[KeyboardButton(text="👥 کاربران")], [KeyboardButton(text="🛑 خاموش کردن ربات")]], resize_keyboard=True))
         return
     if user_id in users and users[user_id].get("completed"):
         await message.answer("شما قبلاً ثبت‌نام کرده‌اید و می‌توانید عکس یا کلیپ ارسال کنید.", reply_markup=user_keyboard())
         return
-    kb = InlineKeyboardMarkup(inline_buttons = [
+    kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ شروع عضویت", callback_data="start_register")]
     ])
     await message.answer(
@@ -100,11 +94,8 @@ async def get_instagram(message: Message, state: FSMContext):
     users[user_id]["step"] = "ask_phone"
     save_users(users)
     kb = ReplyKeyboardMarkup(
-        buttons = [[KeyboardButton(text="📱 ارسال شماره من", request_contact=True)]],
-            if is_admin:
-        buttons.append([KeyboardButton(text='📋 لیست کاربران')])
-        buttons.append([KeyboardButton(text='🛑 خاموش کردن ربات')])
-    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True), one_time_keyboard=True
+        keyboard=[[KeyboardButton(text="📱 ارسال شماره من", request_contact=True)]],
+        resize_keyboard=True, one_time_keyboard=True
     )
     await message.answer("فقط از طریق دکمه زیر شماره خود را ارسال کنید:", reply_markup=kb)
     await state.set_state(RegisterState.waiting_for_phone)
@@ -228,7 +219,7 @@ async def list_users(message: Message):
 🆔 <b>آیدی عددی:</b> <a href='tg://user?id={uid}'>{uid}</a>
 🔗 <b>یوزرنیم:</b> @{data.get('username', 'ندارد')}
 """
-            keyboard = InlineKeyboardMarkup(inline_buttons = [
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[
                 [
                     InlineKeyboardButton(text="🗑 حذف کاربر", callback_data=f"delete_{uid}"),
                     InlineKeyboardButton(text="📁 ارسالی‌ها", callback_data=f"view_{uid}")
