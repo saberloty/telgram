@@ -1,0 +1,109 @@
+
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>نصب ربات تلگرام در Ubuntu 22.04</title>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+      direction: rtl;
+      background-color: #fefefe;
+      color: #333;
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+      line-height: 1.7;
+    }
+    h1, h2 {
+      color: #00695c;
+      font-weight: bold;
+      font-size: 1.4em;
+    }
+    pre {
+      background-color: #f0f0f0;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      position: relative;
+      font-size: 0.9em;
+    }
+    code {
+      font-family: Consolas, monospace;
+    }
+    button.copy {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      padding: 3px 6px;
+      border-radius: 3px;
+      font-size: 0.75em;
+      cursor: pointer;
+    }
+    .note {
+      background-color: #fff3cd;
+      padding: 10px;
+      border: 1px solid #ffeeba;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>📌 نصب ربات تلگرام روی Ubuntu 22.04</h1>
+
+  <h2>1. به‌روزرسانی سیستم:</h2>
+  <pre><button class="copy" onclick="copyCode(this)">کپی</button><code>sudo apt update && sudo apt upgrade -y</code></pre>
+
+  <h2>2. نصب Python 3 و pip:</h2>
+  <pre><button class="copy" onclick="copyCode(this)">کپی</button><code>sudo apt install python3 python3-pip -y</code></pre>
+
+  <h2>3. ساخت پوشه برای ربات:</h2>
+  <pre><button class="copy" onclick="copyCode(this)">کپی</button><code>mkdir ~/mybeautybot
+cd ~/mybeautybot</code></pre>
+
+  <h2>4. ساخت فایل ربات:</h2>
+  <pre><button class="copy" onclick="copyCode(this)">کپی</button><code>nano bot.py</code></pre>
+  <p>کد ربات را داخل این فایل جای‌گذاری کنید.</p>
+
+  <h2>5. نصب کتابخانه‌های موردنیاز:</h2>
+  <pre><button class="copy" onclick="copyCode(this)">کپی</button><code>pip3 install python-telegram-bot==13.15
+pip3 install pytz certifi tornado cachetools APScheduler</code></pre>
+
+  <h2>6. اجرای ربات:</h2>
+  <pre><button class="copy" onclick="copyCode(this)">کپی</button><code>python3 bot.py</code></pre>
+
+  <h2>7. اجرای دائم با screen (اختیاری):</h2>
+  <pre><button class="copy" onclick="copyCode(this)">کپی</button><code>sudo apt install screen -y
+screen -S beautybot
+python3 bot.py</code></pre>
+  <p>برای خروج از سشن بدون توقف ربات:</p>
+  <pre><button class="copy" onclick="copyCode(this)">کپی</button><code>Ctrl + A سپس D</code></pre>
+  <p>برای بازگشت به سشن:</p>
+  <pre><button class="copy" onclick="copyCode(this)">کپی</button><code>screen -r beautybot</code></pre>
+
+  <div class="note">
+    <strong>نکته مهم:</strong><br>
+    در فایل <code>bot.py</code> این مقادیر را طبق اطلاعات خود وارد کنید:
+    <pre><button class="copy" onclick="copyCode(this)">کپی</button><code>TOKEN = "توکن ربات"
+ADMIN_ID = 123456789
+CHANNEL_ID = -100xxxxxxxxxx</code></pre>
+  </div>
+
+  <p>با آرزوی موفقیت 🚀</p>
+
+  <script>
+    function copyCode(btn) {
+      const code = btn.nextElementSibling.innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        btn.innerText = 'کپی شد ✅';
+        setTimeout(() => { btn.innerText = 'کپی'; }, 1500);
+      });
+    }
+  </script>
+</body>
+</html>
